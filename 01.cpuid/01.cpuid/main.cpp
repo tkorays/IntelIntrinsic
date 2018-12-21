@@ -3,13 +3,29 @@
 using namespace std;
 
 int main() {
+
+    char vendor[13] = { 0 };
+
     int regs[4];
 
+#define CHOOSE_ASM
+#ifdef CHOOSE_ASM
+    __asm {
+        lea esi, [regs]
+        mov eax, 0
+        xor ecx, ecx 
+        cpuid 
+        mov dword ptr[esi], eax
+        mov dword ptr[esi+4], ebx
+        mov dword ptr[esi+8], ecx
+        mov dword ptr[esi+12], edx
+    }
+#else 
     __cpuid(regs, 0);
+#endif
 
     int funid_size = regs[0]; // function_id¸öÊý
 
-    char vendor[13] = {0};
     *(int*)vendor = regs[1];
     *(int*)(vendor+4) = regs[3];
     *(int*)(vendor+8) = regs[2]; // ×¢ÒâË³Ðò

@@ -5,7 +5,24 @@ cpuid是一个intel指令，用于获取cpu的信息，适用于x86和x64平台。该指令使用方法：
 * 使用EAX传入一个id
 * 查询的信息放在EAX、EBX、ECX、EDX这四个寄存器里面。
 
-## 1. __cpuid和__cpuidex函数
+## 1. cpuid指令
+cpuid是一个汇编指令，使用EAX和ECX传参，EAX传入0表示基本的function，传入0x80000000表示扩展功能，结果返回在EAX、EBX、ECX、EDX中：
+```cpp
+int regs[4];
+
+__asm {
+    lea esi, [regs]
+    mov eax, 0
+    xor ecx, ecx 
+    cpuid 
+    mov dword ptr[esi], eax
+    mov dword ptr[esi+4], ebx
+    mov dword ptr[esi+8], ecx
+    mov dword ptr[esi+12], edx
+}
+```
+
+## 2. __cpuid和__cpuidex函数
 可以使用汇编去查询信息，也可以使用编译器提供的函数。在MSVC中就可以使用这两个函数。这两个函数的函数原型：
 
 ```cpp
@@ -21,34 +38,12 @@ void __cpuidex(
 );
 ```
 
-* __cpuid传入一个数组，分别保存输出结果EAX、EBX、ECX、EDX的值，function_id作为入参，赋给EAX。查询的内容由function_id指定。
+这两个函数都对应cpuid指令，__cpuidex是__cpuid的增强版。
+__cpuid传入一个数组，分别保存输出结果EAX、EBX、ECX、EDX的值，function_id作为入参，赋给EAX。查询的内容由function_id指定。
+__cpuidex调用时，ECX传入0x80000000（subfunction_id），表示查询扩展功能。因此__cpuid调用时，ECX寄存器需要清零。
 
-__cpuid和__cpuidex对应的汇编：
-```
-    int regs[4];
-
-    __cpuid(regs, 1);
-00C516B8  lea         esi,[regs]  
-00C516BB  mov         eax,1  
-00C516C0  xor         ecx,ecx  
-00C516C2  cpuid  
-00C516C4  mov         dword ptr [esi],eax  
-00C516C6  mov         dword ptr [esi+4],ebx  
-00C516C9  mov         dword ptr [esi+8],ecx  
-00C516CC  mov         dword ptr [esi+0Ch],edx 
-
-    __cpuidex(regs, 1, 0);
-009716CF  lea         esi,[regs]  
-009716D2  mov         eax,1  
-009716D7  xor         ecx,ecx  
-009716D9  cpuid  
-009716DB  mov         dword ptr [esi],eax  
-009716DD  mov         dword ptr [esi+4],ebx  
-009716E0  mov         dword ptr [esi+8],ecx  
-009716E3  mov         dword ptr [esi+0Ch],edx 
-```
-
-* 当function_id为0时，EAX中返回了CPU所支持的function_id个数，EBX、ECX、EDX中保存了CPU产商的名称，最多12个字符（4*3）。
+## 3. cpuid查询支持功能个数和产商名称
+当function_id为0时，EAX中返回了CPU所支持的function_id个数，EBX、ECX、EDX中保存了CPU产商的名称，最多12个字符（4*3）。
 ```cpp
     int regs[4];
 
@@ -64,7 +59,7 @@ __cpuid和__cpuidex对应的汇编：
     cout << vendor << endl; // GenuineIntel
 ```
 
-* __cpuid(regs, 0),function_id为0， EAX返回参数支持的function_id个数，可以用它来遍历所有功能：
+__cpuid(regs, 0),function_id为0， EAX返回参数支持的function_id个数，可以用它来遍历所有功能：
 ```
 // 使用遍历方法
     __cpuid(regs, 0);
@@ -81,10 +76,12 @@ __cpuidex(regs, i, 0);
 __cpuid(regs, i);
 ```
 
-* __cpuid(regs, 1)的ECX、EDX中保存了对指令集的支持情况，包括MMX、SSE、AVX等。
+## 4. CPU支持的指令集查询
+* __cpuid(regs, 1)的ECX、EDX中保存了对指令集的支持情况，包括MMX（EDX bit 23）、SSE（EDX bit 25）、SSE2（EDX bit 26）、SSE3（ECX bit 0）、AVX（ECX bit 28）等。
 * __cpuid(regs, 7)的EBX和ECX也保存了一些指令集支持情况。
 
 
+## 5. 扩展功能查询
 * 一些CPU支持一些扩展function_id，id是从0x80000000开始的，和基本的一样，传0x80000000，在EAX中获取支持的id个数：
 ```cpp
     __cpuid(regs, 0x80000000);
