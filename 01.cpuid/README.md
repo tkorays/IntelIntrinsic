@@ -2,11 +2,8 @@
 
 cpuid是一个intel指令，用于获取cpu的信息，适用于x86和x64平台。该指令使用方法：
 
-* 使用EAX传入一个id
-* 查询的信息放在EAX、EBX、ECX、EDX这四个寄存器里面。
-
 ## 1. cpuid指令
-cpuid是一个汇编指令，使用EAX和ECX传参，EAX传入0表示基本的function，传入0x80000000表示扩展功能，结果返回在EAX、EBX、ECX、EDX中：
+使用EAX和ECX传参，ECX传入0表示基本的function，传入0x80000000表示扩展功能，结果返回在EAX、EBX、ECX、EDX中：
 ```cpp
 int regs[4];
 
